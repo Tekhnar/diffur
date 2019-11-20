@@ -132,7 +132,7 @@ size_tree_t Tree::readNewObject(char **read_now)
 
     skipSymbols(read_now);
     if (**read_now == ')') {
-        root_ = creatNewObject(name, left_temp, right_temp);
+        root_ = createNewObject(name, left_temp, right_temp);
         return root_;
     }
 
@@ -161,7 +161,7 @@ void Tree::readName(char **read_now, char *name)
     skipSymbols(read_now);
 }
 
-size_tree_t Tree::creatNewObject(char name[], size_tree_t left, size_tree_t right, size_tree_t parent)
+size_tree_t Tree::createNewObject(char name[], size_tree_t left, size_tree_t right, size_tree_t parent)
 {
     size_tree_t new_index = free_;
     free_ = one_element[free_].right_;
@@ -210,14 +210,14 @@ void Tree::writeFulTreeInFile (char* text, const char *name_file)
 void Tree::writeTree (char* text, size_tree_t index)
 {
 //    char name[1000] = "{\"";
-    strcat(text, "{\"");
+    strcat(text, "(\"");
     strcat(text, one_element[index].name_);
     strcat(text, "\"");
 
     if (one_element[index].left_ == 0 || one_element[index].right_ == 0){
-        strcat(text, "{\"");
+        strcat(text, "(\"");
         strcat(text, one_element[index].name_);
-        strcat(text, "\"}");
+        strcat(text, "\")");
     }
     else {
         writeTree(text, one_element[index].left_);
@@ -227,7 +227,7 @@ void Tree::writeTree (char* text, size_tree_t index)
         strcat(text, "\"");
 
         writeTree(text, one_element[index].right_);
-        strcat(text, "}");
+        strcat(text, ")");
     }
 }
 
@@ -487,8 +487,8 @@ void Tree::addNewObjectInTree(char *name, size_tree_t index)
     strcat(new_name, "?");
 
     size_tree_t temp_index = one_element[index].parent_;
-    size_tree_t new_element = creatNewObject(name, 0, 0);
-    size_tree_t new_question = creatNewObject(new_name, new_element, index,
+    size_tree_t new_element = createNewObject(name, 0, 0);
+    size_tree_t new_question = createNewObject(new_name, new_element, index,
             one_element[index].parent_);
 
     if (one_element[temp_index].left_ == index)
@@ -552,6 +552,9 @@ bool Tree::isOperator (char *name, size_tree_t index)
     OPER(* , OPERATOR_MUL)
     OPER(/ , OPERATOR_DIV)
     OPER(^ , OPERATOR_POW)
+    OPER(sin, OPERATOR_SIN)
+    OPER(cos, OPERATOR_COS)
+
 
 /*
     if (!strcmp("+", name)) {
@@ -608,3 +611,116 @@ bool Tree::isVariable(char *name, size_tree_t index) {
 #undef VAR
     return false;
 }
+
+size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
+    assert(index!= 0);
+    switch (one_element[index].type_)
+    {
+        case TYPE_NUMBER:
+            return createNewNode(diff_tree, TYPE_NUMBER, 0);
+            break;
+        case TYPE_VARIABLE:
+            return createNewNode(diff_tree, TYPE_NUMBER, 1);
+        case TYPE_OPERATOR:
+
+#define PLUS(left, right) differentialOfAddSub(true,diff_tree, left, right)
+#define MINUS(left, right) differentialOfAddSub(false,diff_tree, left, right)
+#define MUL(left,right) differentialOfMul(diff_tree, left, right)
+
+#define dL diff(diff_tree, one_element[index].left_)
+#define dR diff(diff_tree, one_element[index].right_)
+#define cL copyBranch(diff_tree, one_element[index].left_)
+#define cR copyBranch(diff_tree, one_element[index].right_)
+
+            switch ((int) round(one_element[index].value_))
+            {
+                case OPERATOR_ADD:
+                    return PLUS(dL, dR);
+                    break;
+                case OPERATOR_SUB:
+                    return MINUS(dL, dR);
+                    break;
+                case OPERATOR_MUL:
+                    return PLUS(MUL(dL,cR),MUL(cL,dR));
+//                    return diff_add()
+            }
+            break;
+
+    }
+
+#undef cL
+#undef cR
+
+#undef dR
+#undef dL
+#undef PLUS
+#undef MINUS
+#undef MUL
+    return 0;
+}
+
+size_tree_t Tree::createNewNode(Tree *diff_tree, size_tree_t type, value_t value) {
+    char name[100] = {};
+    if (type == TYPE_NUMBER) {
+        sprintf(name, "%lg", value);
+    }
+    size_tree_t index = diff_tree->createNewObject(name,0,0);
+    diff_tree->one_element[index].type_ = type;
+    diff_tree->one_element[index].value_ = value;
+    return index;
+}
+
+void Tree::fullDifferential(Tree *diff_tree) {
+//    Tree copy;
+//    copyTree(copy);
+//    copy.dump();
+   diff_tree->root_ = diff(diff_tree, root_);
+
+}
+
+void Tree::copyTree(Tree &copy) {
+    copy.size_ = this->size_;
+    copy.length_ = this->length_;
+
+    free(copy.one_element);
+    copy.one_element = (elem*) calloc(copy.length_, sizeof(one_element[0]));
+    copy.size_names_ = this->size_names_;
+    copy.length_names_ = this->length_names_;
+
+    free(copy.all_names);
+    copy.all_names = (char*) calloc(copy.length_names_, sizeof(char));
+    copy.root_ = this->root_;
+    copy.free_ = this->free_;
+}
+
+size_tree_t Tree::differentialOfAddSub(bool isAdd, Tree* diff_tree, size_tree_t left, size_tree_t right) {
+    if(isAdd)
+        return diff_tree->createNewObject((char*) "+", left, right);
+    else
+        diff_tree->createNewObject((char*) "-", left, right);
+}
+
+size_tree_t Tree::differentialOfMul(Tree *diff_tree, size_tree_t left, size_tree_t right) {
+    return diff_tree->createNewObject((char*) "*", left, right);
+}
+
+size_tree_t Tree::copyNode(Tree *diff_tree, size_tree_t index) {
+    diff_tree->createNewNode(diff_tree, this->one_element[index].type_, this->one_element[index].value_);
+
+    return 0;
+}
+
+size_tree_t Tree::copyBranch(Tree *diff_tree, size_tree_t index) {
+    size_tree_t left = 0, right = 0;
+    if (this->one_element[index].left_)
+        left = copyBranch(diff_tree, this->one_element[index].left_);
+    if (this->one_element[index].right_)
+        right = copyBranch(diff_tree, this->one_element[index].right_);
+
+    size_tree_t new_index = diff_tree->createNewObject(this->one_element[index].name_, left, right);
+    diff_tree->one_element[new_index].type_ = this->one_element[index].type_;
+    diff_tree->one_element[new_index].value_ = this->one_element[index].value_;
+
+    return new_index;
+}
+

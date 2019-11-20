@@ -7,10 +7,12 @@
 
 #include "my_stack.h"
 #include <ctype.h>
+#include <math.h>
 
 const char TYPE_OPERATOR = 1, TYPE_NUMBER = 2, TYPE_VARIABLE = 3;
 
-enum {OPERATOR_ADD = 1, OPERATOR_SUB, OPERATOR_MUL, OPERATOR_DIV, OPERATOR_POW};
+enum {OPERATOR_ADD = 1, OPERATOR_SUB, OPERATOR_MUL, OPERATOR_DIV, OPERATOR_POW,
+        OPERATOR_SIN, OPERATOR_COS};
 
 //#include <zconf.h>
 //#include "my_stack.h"
@@ -40,6 +42,8 @@ struct Tree {
 
     void play ();
 
+    void fullDifferential (Tree *diff_tree);
+
     void definition (size_tree_t index);
 
     Tree(const Tree& that) = delete;
@@ -55,8 +59,18 @@ private:
 
     bool haveQuotes (char** read_now);
 
-    void whatItIs (char* name, size_tree_t index);
+    void copyTree (Tree& copy);
+
+
+    size_tree_t diff (Tree *diff_tree,const size_tree_t index);
+    size_tree_t differentialOfAddSub (bool isAdd, Tree *diff_tree, size_tree_t left, size_tree_t right);
+    size_tree_t differentialOfMul (Tree *diff_tree, size_tree_t left, size_tree_t right);
+    size_tree_t createNewNode (Tree *diff_tree, size_tree_t type, value_t value);
+    size_tree_t copyNode (Tree *diff_tree, size_tree_t index);
+    size_tree_t copyBranch (Tree *diff_tree, size_tree_t index);
     bool isVariable (char* name, size_tree_t index);
+
+    void whatItIs (char* name, size_tree_t index);
     bool isOperator (char *name, size_tree_t index);
     bool isNumber (char* name, size_tree_t index);
     void searchParents (Stack_t* stack, size_tree_t index);
@@ -79,7 +93,7 @@ private:
     void skipSymbols (char** read_now);
     size_tree_t readNewObject (char** read_now);
     void readName (char** read_now, char name[]);
-    size_tree_t creatNewObject (char name[], size_tree_t left, size_tree_t right, size_tree_t parent = 0);
+    size_tree_t createNewObject (char name[], size_tree_t left, size_tree_t right, size_tree_t parent = 0);
 
     void writeFulTreeInFile (char* text, const char *name_file);
 };
