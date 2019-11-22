@@ -9,10 +9,15 @@
 #include <ctype.h>
 #include <math.h>
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <string.h>
+
 const char TYPE_OPERATOR = 1, TYPE_NUMBER = 2, TYPE_VARIABLE = 3;
 
 enum {OPERATOR_ADD = 1, OPERATOR_SUB, OPERATOR_MUL, OPERATOR_DIV, OPERATOR_POW,
-        OPERATOR_SIN, OPERATOR_COS};
+        OPERATOR_SIN, OPERATOR_COS, OPERATOR_LN};
 
 //#include <zconf.h>
 //#include "my_stack.h"
@@ -36,6 +41,7 @@ struct Tree {
     explicit Tree (size_tree_t DEFAULT_LENGHT = 50, size_tree_t DEFAULT_LENGHT_NAMES = 1000);
     ~Tree ();
     void dump ();
+    void latex (const char* name);
 
     bool readTreeFromFile (const char name_file[]);
     bool writeTreeInFile (const char name_file[]);
@@ -57,14 +63,26 @@ private:
     size_tree_t root_;
     size_tree_t free_;
 
+    static void startPrintLatex (FILE* file);
+    void writeTexInText (char * text, size_tree_t index);
+    static void endPrintLatex (FILE* file);
+    int priorityFunction (size_tree_t index);
+    void writeNameInTexText (char* text, size_tree_t index);
+
+    void deleteLastBracket (char *text);
+
     bool haveQuotes (char** read_now);
 
     void copyTree (Tree& copy);
 
+    static bool isConstBranch (Tree* tree, size_tree_t index);
 
     size_tree_t diff (Tree *diff_tree,const size_tree_t index);
     size_tree_t differentialOfAddSub (bool isAdd, Tree *diff_tree, size_tree_t left, size_tree_t right);
     size_tree_t differentialOfMul (Tree *diff_tree, size_tree_t left, size_tree_t right);
+    static size_tree_t differentialOfDiv(Tree *diff_tree, size_tree_t left, size_tree_t right);
+    static size_tree_t differentialOfPow(Tree *diff_tree, size_tree_t left, size_tree_t right);
+
     size_tree_t createNewNode (Tree *diff_tree, size_tree_t type, value_t value);
     size_tree_t copyNode (Tree *diff_tree, size_tree_t index);
     size_tree_t copyBranch (Tree *diff_tree, size_tree_t index);
@@ -86,6 +104,7 @@ private:
     void say (int command, char* = nullptr);
     void searchPlay ();
 
+    static void writeNameInTextFromTree (char* text, char* name);
     void writeTree (char* text, size_tree_t index);
     void loadingTree (char text[]);
     void readTextTree (char* read_now);

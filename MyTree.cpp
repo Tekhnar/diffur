@@ -2,10 +2,10 @@
 // Created by texnar on 11/11/2019.
 //
 #include "MyTree.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+//#include <assert.h>
+//#include <string.h>
 
 #define LEVEL_VERIFIC 1
 #include "my_stack.h"
@@ -210,22 +210,38 @@ void Tree::writeFulTreeInFile (char* text, const char *name_file)
 void Tree::writeTree (char* text, size_tree_t index)
 {
 //    char name[1000] = "{\"";
-    strcat(text, "(\"");
-    strcat(text, one_element[index].name_);
-    strcat(text, "\"");
+//    strcat(text, "(\"");
+//    strcat(text, one_element[index].name_);
+//    strcat(text, "\"");
 
-    if (one_element[index].left_ == 0 || one_element[index].right_ == 0){
-        strcat(text, "(\"");
-        strcat(text, one_element[index].name_);
-        strcat(text, "\")");
+    if (one_element[index].left_ == 0 && one_element[index].right_ == 0){
+        strcat(text, "(");
+//        strcat(text, one_element[index].name_);
+        writeNameInTextFromTree(text, one_element[index].name_);
+        strcat(text, ")");
     }
-    else {
+    else
+    if (one_element[index].left_ == 0 && one_element[index].right_ != 0){
+        strcat(text, "(");
+//        strcat(text, one_element[index].name_);
         writeTree(text, one_element[index].left_);
+        writeNameInTextFromTree(text, one_element[index].name_);
+        strcat(text, ")");
+    }
+    else
+    if (one_element[index].left_ != 0 && one_element[index].right_ == 0){
+        strcat(text, "(");
+//        strcat(text, one_element[index].name_);
+        writeNameInTextFromTree(text, one_element[index].name_);
+        writeTree(text, one_element[index].left_);
+        strcat(text, ")");
+    }
 
-        strcat(text, "\"");
-        strcat(text, one_element[index].name_);
-        strcat(text, "\"");
+    else {
+        strcat(text, "(");
 
+        writeTree(text, one_element[index].left_);
+        writeNameInTextFromTree(text, one_element[index].name_);
         writeTree(text, one_element[index].right_);
         strcat(text, ")");
     }
@@ -240,7 +256,7 @@ void Tree::dump()
 
     for (size_tree_t i = 1; i < length_; i++){
         if (one_element[i].parent_ != -1){
-            fprintf(file, "Index%d [shape=record, label=\" <left> Yes: %d | '%s' | {Type: %d | Value: %lg} | <right> No: %d \",",
+            fprintf(file, "Index%d [shape=record, label=\" <left>  %d | '%s' | {Type: %d | Value: %lg} | <right> %d \",",
                 i, one_element[i].left_, one_element[i].name_, one_element[i].type_,one_element[i].value_, one_element[i].right_);
             switch (one_element[i].type_){
                 case TYPE_OPERATOR:
@@ -275,22 +291,6 @@ void Tree::dump()
 //            fprintf(file, "Index%d: <parent> -> Index%d ;\n", i, one_element[i].parent_);
         }
     }
-
- /*   size_list_t index = head_;
-    for (size_list_t i = 1; i < length_; i++) {
-        fprintf(file, "Index%d: <next> -> Index%d : <index>;\n", i, next_[i]);
-        index = next_[index];
-    }
-
-    index = tail_;
-    for (size_list_t i = 1; i < length_; i++) {
-        if (prev_[i] != -1){
-            fprintf(file, "Index%d: <prev> -> Index%d : <index>;\n", i, prev_[i]);
-            index = prev_[index];
-        }
-    }*/
-
-
 
     fprintf(file, "}\n");
     fclose(file);
@@ -554,6 +554,7 @@ bool Tree::isOperator (char *name, size_tree_t index)
     OPER(^ , OPERATOR_POW)
     OPER(sin, OPERATOR_SIN)
     OPER(cos, OPERATOR_COS)
+    OPER(ln, OPERATOR_LN)
 
 
 /*
@@ -626,6 +627,8 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
 #define PLUS(left, right) differentialOfAddSub(true,diff_tree, left, right)
 #define MINUS(left, right) differentialOfAddSub(false,diff_tree, left, right)
 #define MUL(left,right) differentialOfMul(diff_tree, left, right)
+#define DIV(left, right) differentialOfDiv(diff_tree, left, right)
+#define POW(left, right) differentialOfPow(diff_tree, left, right)
 
 #define dL diff(diff_tree, one_element[index].left_)
 #define dR diff(diff_tree, one_element[index].right_)
@@ -643,6 +646,11 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
                 case OPERATOR_MUL:
                     return PLUS(MUL(dL,cR),MUL(cL,dR));
 //                    return diff_add()
+                case OPERATOR_DIV:
+                    return DIV(MINUS(MUL(dL,cR), MUL(cL,dR)),MUL(cR,cR));
+             /*   case OPERATOR_POW:
+//                    if (isConstBranch(this, one_element[index].left_))
+                  */  return POW(one_element[index].left_, one_element[index].right_);
             }
             break;
 
@@ -653,9 +661,12 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
 
 #undef dR
 #undef dL
+
 #undef PLUS
 #undef MINUS
 #undef MUL
+#undef POW
+#undef DIV
     return 0;
 }
 
@@ -724,3 +735,132 @@ size_tree_t Tree::copyBranch(Tree *diff_tree, size_tree_t index) {
     return new_index;
 }
 
+size_tree_t Tree::differentialOfDiv(Tree *diff_tree, size_tree_t left, size_tree_t right) {
+    return diff_tree->createNewObject((char*) "/", left, right);
+}
+
+size_tree_t Tree::differentialOfPow(Tree *diff_tree, size_tree_t left, size_tree_t right) {
+//    if (this->one_element[left].)
+//    if (isConstBranch(this, one_element[index].left_))
+//        if (isConstBranch(this, one_element[index].right_))
+    return diff_tree->createNewObject((char*) "^", left, right);
+}
+
+bool Tree::isConstBranch (Tree *tree, size_tree_t index){
+    bool found = false;
+    if (tree->one_element[index].left_)
+        if(isConstBranch(tree, tree->one_element[index].left_))
+            return true;
+
+    if (tree->one_element[index].right_)
+        if(isConstBranch(tree, tree->one_element[index].right_))
+            return true;
+
+    return false;
+}
+
+void Tree::latex(const char* name)
+{
+    FILE* file = fopen(name, "wb");
+    startPrintLatex(file);
+    char text[20000] = {};
+    writeTexInText(text, root_);
+    deleteLastBracket(text);
+
+    fprintf(file, "%s", text);
+
+    endPrintLatex(file);
+    fclose(file);
+//    system
+}
+
+void Tree::startPrintLatex (FILE* file)
+{
+    fprintf(file, "\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[russian]{babel}\n \\begin{document}\n\\section{Очень важное взятие ДИФФЕРЕНЦИАЛА этой хрени}\n\n");
+}
+
+void Tree::endPrintLatex (FILE* file)
+{
+    fprintf(file, "\\end{document}");
+}
+
+void Tree::writeNameInTextFromTree(char *text, char *name) {
+    if (strchr(name, ' ')) {
+        strcat(text, "\"");
+        strcat(text, name);
+        strcat(text, "\"");
+    }
+    else {
+        strcat(text, name);
+    }
+}
+
+void Tree::writeTexInText(char *text, size_tree_t index) {
+
+    char* last_text = nullptr;
+    if (index == root_)
+        last_text = strchr(text, '\0');
+   /* if (index == root_){}
+
+    else */{
+        if (one_element[index].left_ == 0 && one_element[index].right_ == 0){
+//            strcat(text, "(");
+    //        strcat(text, one_element[index].name_);
+            writeNameInTextFromTree(text, one_element[index].name_);
+//            strcat(text, ")");
+        }
+        else
+        if (one_element[index].left_ == 0 && one_element[index].right_ != 0){
+            strcat(text, "(");
+    //        strcat(text, one_element[index].name_);
+            writeTexInText(text, one_element[index].left_);
+            writeNameInTextFromTree(text, one_element[index].name_);
+            strcat(text, ")");
+        }
+        else
+        if (one_element[index].left_ != 0 && one_element[index].right_ == 0){
+            strcat(text, "(");
+    //        strcat(text, one_element[index].name_);
+            writeNameInTextFromTree(text, one_element[index].name_);
+            writeTexInText(text, one_element[index].left_);
+            strcat(text, ")");
+        }
+
+        else {
+            strcat(text, "(");
+
+            writeTexInText(text, one_element[index].left_);
+            writeNameInTextFromTree(text, one_element[index].name_);
+            writeTexInText(text, one_element[index].right_);
+            strcat(text, ")");
+    }
+
+}
+    if (index == root_)
+        *last_text = ' ';
+}
+
+int Tree::priorityFunction(size_tree_t index) {
+    if (one_element[index].type_ == TYPE_NUMBER ||
+        one_element[index].type_ == TYPE_OPERATOR)
+        return 1;
+
+    if (one_element[index].type_ == TYPE_OPERATOR &&
+        ((int) round(one_element[index].value_) == OPERATOR_ADD ||
+         (int) round(one_element[index].value_) == OPERATOR_SUB))
+        return 2;
+
+    if (one_element[index].type_ == TYPE_OPERATOR &&
+        ((int) round(one_element[index].value_) == OPERATOR_MUL ||
+         (int) round(one_element[index].value_) == OPERATOR_DIV))
+        return 3;
+    printf("Error in priority function\n");
+}
+
+void Tree::deleteLastBracket(char *text) {
+    char* point = strchr(text, '\0');
+    if (point)
+        *(point - 1) = '\0';
+    else
+        printf("Error in deleteLastBracket\n");
+}
