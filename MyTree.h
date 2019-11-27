@@ -63,11 +63,28 @@ private:
     size_tree_t root_;
     size_tree_t free_;
 
+    void recordExpression (char* text);
+
+    void allSimplifications (char* text);
+    void optimisationOfConstants (char* text, size_tree_t index);
+    void optimisationUnusedMembers(char* text);
+
+    size_tree_t searchUnusedNode (Tree* tree , size_tree_t index);
+    bool checkUnusedNode (Tree* tree, size_tree_t index);
+    void optimisationOfUnusedNode(size_tree_t index);
+
+
     static void startPrintLatex (FILE* file);
     void writeTexInText (char * text, size_tree_t index);
     static void endPrintLatex (FILE* file);
+
+    void priorityStrcat (char* text, const char* string, bool priority, size_tree_t index);
     int priorityFunction (size_tree_t index);
+    bool comparePriority (size_tree_t first, size_tree_t second);
     void writeNameInTexText (char* text, size_tree_t index);
+
+    bool exceptionOperators (char* text, size_tree_t index);
+
 
     void deleteLastBracket (char *text);
 
@@ -76,6 +93,9 @@ private:
     void copyTree (Tree& copy);
 
     static bool isConstBranch (Tree* tree, size_tree_t index);
+    size_tree_t searchConstNode (Tree* tree, size_tree_t index);
+    void optimisationOfConstNode (size_tree_t index);
+    void clearNode (size_tree_t index);
 
     size_tree_t diff (Tree *diff_tree,const size_tree_t index);
     size_tree_t differentialOfAddSub (bool isAdd, Tree *diff_tree, size_tree_t left, size_tree_t right);
@@ -85,6 +105,8 @@ private:
 
     size_tree_t createNewNode (Tree *diff_tree, size_tree_t type, value_t value);
     size_tree_t copyNode (Tree *diff_tree, size_tree_t index);
+    size_tree_t createNumber(Tree* tree, value_t value);
+
     size_tree_t copyBranch (Tree *diff_tree, size_tree_t index);
     bool isVariable (char* name, size_tree_t index);
 

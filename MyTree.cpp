@@ -634,6 +634,8 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
 #define dR diff(diff_tree, one_element[index].right_)
 #define cL copyBranch(diff_tree, one_element[index].left_)
 #define cR copyBranch(diff_tree, one_element[index].right_)
+#define crNum(number) createNumber(diff_tree, number)
+
 
             switch ((int) round(one_element[index].value_))
             {
@@ -647,7 +649,7 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
                     return PLUS(MUL(dL,cR),MUL(cL,dR));
 //                    return diff_add()
                 case OPERATOR_DIV:
-                    return DIV(MINUS(MUL(dL,cR), MUL(cL,dR)),MUL(cR,cR));
+                    return DIV(MINUS(MUL(dL,cR), MUL(cL,dR)),POW(cR,crNum(2)));
              /*   case OPERATOR_POW:
 //                    if (isConstBranch(this, one_element[index].left_))
                   */  return POW(one_element[index].left_, one_element[index].right_);
@@ -655,7 +657,7 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
             break;
 
     }
-
+#undef crNum
 #undef cL
 #undef cR
 
@@ -682,9 +684,7 @@ size_tree_t Tree::createNewNode(Tree *diff_tree, size_tree_t type, value_t value
 }
 
 void Tree::fullDifferential(Tree *diff_tree) {
-//    Tree copy;
-//    copyTree(copy);
-//    copy.dump();
+
    diff_tree->root_ = diff(diff_tree, root_);
 
 }
@@ -748,29 +748,48 @@ size_tree_t Tree::differentialOfPow(Tree *diff_tree, size_tree_t left, size_tree
 
 bool Tree::isConstBranch (Tree *tree, size_tree_t index){
     bool found = false;
+    if (tree->one_element[index].type_ == TYPE_NUMBER)
+        return true;
+
     if (tree->one_element[index].left_)
-        if(isConstBranch(tree, tree->one_element[index].left_))
-            return true;
+        found = isConstBranch(tree, tree->one_element[index].left_);
 
-    if (tree->one_element[index].right_)
-        if(isConstBranch(tree, tree->one_element[index].right_))
-            return true;
+    if (found && tree->one_element[index].right_)
+        found = isConstBranch(tree, tree->one_element[index].right_);
 
-    return false;
+    return found;
 }
+
+/*size_tree_t Tree::isConstBranch (Tree *tree, size_tree_t index){
+    size_tree_t found = 0;
+    if (tree->one_element[index].type_ == TYPE_NUMBER)
+        return index;
+
+    if (tree->one_element[index].left_)
+        found = isConstBranch(tree, tree->one_element[index].left_);
+
+    if (found && tree->one_element[index].right_)
+        found = isConstBranch(tree, tree->one_element[index].right_);
+
+    return found;
+}*/
 
 void Tree::latex(const char* name)
 {
     FILE* file = fopen(name, "wb");
     startPrintLatex(file);
-    char text[20000] = {};
-    writeTexInText(text, root_);
-    deleteLastBracket(text);
+    char* text = (char*) calloc(40000, sizeof(char));
 
-    fprintf(file, "%s", text);
+    recordExpression(text);
+    allSimplifications(text);
+//    writeTexInText(text, root_);
+//    deleteLastBracket(text);
+
+    fwrite(text, sizeof(char), strlen(text), file);
 
     endPrintLatex(file);
     fclose(file);
+    free(text);
 //    system
 }
 
@@ -796,53 +815,65 @@ void Tree::writeNameInTextFromTree(char *text, char *name) {
 }
 
 void Tree::writeTexInText(char *text, size_tree_t index) {
+#define Strcat(text, string) priorityStrcat(text, string, priority, index)
+//    char* last_text = nullptr;
+//    if (index == root_)
+//        last_text = strchr(text, '\0');
 
-    char* last_text = nullptr;
-    if (index == root_)
-        last_text = strchr(text, '\0');
-   /* if (index == root_){}
+    if (one_element[index].left_ == 0 && one_element[index].right_ == 0){
+//        writeNameInTextFromTree(text, one_element[index].name_);
+        writeNameInTexText(text, index);
+    }
+    else
+    if (one_element[index].left_ != 0 && one_element[index].right_ == 0){
+//        bool priority = false;
+//        if (priorityFunction(index) > priorityFunction(one_element[index].left_))
+//            priority = true;
+        bool priority = comparePriority(index, one_element[index].parent_);
 
-    else */{
-        if (one_element[index].left_ == 0 && one_element[index].right_ == 0){
-//            strcat(text, "(");
-    //        strcat(text, one_element[index].name_);
-            writeNameInTextFromTree(text, one_element[index].name_);
-//            strcat(text, ")");
-        }
-        else
-        if (one_element[index].left_ == 0 && one_element[index].right_ != 0){
-            strcat(text, "(");
-    //        strcat(text, one_element[index].name_);
-            writeTexInText(text, one_element[index].left_);
-            writeNameInTextFromTree(text, one_element[index].name_);
-            strcat(text, ")");
-        }
-        else
-        if (one_element[index].left_ != 0 && one_element[index].right_ == 0){
-            strcat(text, "(");
-    //        strcat(text, one_element[index].name_);
-            writeNameInTextFromTree(text, one_element[index].name_);
-            writeTexInText(text, one_element[index].left_);
-            strcat(text, ")");
-        }
+        Strcat(text, "(");
+        writeTexInText(text, one_element[index].left_);
+//        writeNameInTextFromTree(text, one_element[index].name_);
+        writeNameInTexText(text, index);
+        Strcat(text, ")");
+    }
+    else
+    if (one_element[index].left_ == 0 && one_element[index].right_ != 0){
+        bool priority = comparePriority(index, one_element[index].parent_);
 
-        else {
-            strcat(text, "(");
-
-            writeTexInText(text, one_element[index].left_);
-            writeNameInTextFromTree(text, one_element[index].name_);
-            writeTexInText(text, one_element[index].right_);
-            strcat(text, ")");
+        Strcat(text, "(");
+//        writeNameInTextFromTree(text, one_element[index].name_);
+        writeNameInTexText(text, index);
+        writeTexInText(text, one_element[index].left_);
+        Strcat(text, ")");
     }
 
-}
-    if (index == root_)
-        *last_text = ' ';
+    else {
+        bool priority = comparePriority(index, one_element[index].parent_);
+
+        Strcat(text, "(");
+
+        if (!exceptionOperators(text, index)) {
+            writeTexInText(text, one_element[index].left_);
+        //        writeNameInTextFromTree(text, one_element[index].name_);
+            writeNameInTexText(text, index);
+            writeTexInText(text, one_element[index].right_);
+        }
+
+        Strcat(text, ")");
+    }
+
+//    if (index == root_)
+//        *last_text = ' ';
+#undef Strcat
 }
 
 int Tree::priorityFunction(size_tree_t index) {
+//    if ()
+    if (one_element[index].type_ == 0)
+        return 1;
     if (one_element[index].type_ == TYPE_NUMBER ||
-        one_element[index].type_ == TYPE_OPERATOR)
+        one_element[index].type_ == TYPE_VARIABLE)
         return 1;
 
     if (one_element[index].type_ == TYPE_OPERATOR &&
@@ -854,7 +885,12 @@ int Tree::priorityFunction(size_tree_t index) {
         ((int) round(one_element[index].value_) == OPERATOR_MUL ||
          (int) round(one_element[index].value_) == OPERATOR_DIV))
         return 3;
-    printf("Error in priority function\n");
+
+    if (one_element[index].type_ == TYPE_OPERATOR &&
+        ((int) round(one_element[index].value_) == OPERATOR_POW))
+        return 4;
+
+    printf("Error in priority function %d\n", one_element[index].type_);
 }
 
 void Tree::deleteLastBracket(char *text) {
@@ -864,3 +900,342 @@ void Tree::deleteLastBracket(char *text) {
     else
         printf("Error in deleteLastBracket\n");
 }
+
+void Tree::priorityStrcat(char *text, const char *string, bool priority, size_tree_t index) {
+    if (index == root_)
+        return;
+    if (priority) {
+        strcat(text, string);
+    }
+}
+
+bool Tree::comparePriority(size_tree_t first, size_tree_t second) {
+    if (one_element[second].type_ == TYPE_OPERATOR
+    && (int) (one_element[second].value_ + 1e-12) == OPERATOR_DIV
+    && one_element[first].type_ == TYPE_OPERATOR)
+        return true;
+    if (priorityFunction(first) < priorityFunction(second))
+        return true;
+    return false;
+}
+
+void Tree::writeNameInTexText(char *text, size_tree_t index) {
+    char name[100] = {};
+    if (one_element[index].type_ == TYPE_VARIABLE) {
+//        strcat(text, "$");
+        strcat(text, one_element[index].name_);
+//        strcat(text, "$");
+    } else
+        strcat(text, one_element[index].name_);
+
+    writeNameInTextFromTree(text, name);
+}
+
+bool Tree::exceptionOperators(char *text, size_tree_t index) {
+    if (one_element[index].type_ == TYPE_OPERATOR
+        && (int) (one_element[index].value_ + 1e-12) == OPERATOR_DIV) {
+        strcat(text, "\\frac");
+        strcat(text, "{");
+        writeTexInText(text, one_element[index].left_);
+        strcat(text, "}");
+        //        writeNameInTextFromTree(text, one_element[index].name_);
+//        writeNameInTexText(text, index);
+        strcat(text, "{");
+        writeTexInText(text, one_element[index].right_);
+        strcat(text, "}");
+        return true;
+    }
+    if (one_element[index].type_ == TYPE_OPERATOR
+        && (int) (one_element[index].value_ + 1e-12) == OPERATOR_MUL) {
+        writeTexInText(text, one_element[index].left_);
+        strcat(text, "\\cdot ");
+        writeTexInText(text, one_element[index].right_);
+        return true;
+
+    }
+    return false;
+}
+
+void Tree::recordExpression(char *text) {
+    strcat(text, "\\begin{displaymath}\n");
+    writeTexInText(text, root_);
+    strcat(text, "\n\\end{displaymath}\n");
+}
+
+void Tree::allSimplifications(char *text) {
+    strcat(text, "Немного преобразуем полученную штуку, чтобы выражение выглядело ещё менее понятным.\n");
+    optimisationOfConstants(text, root_);
+    optimisationUnusedMembers(text);
+
+}
+
+void Tree::optimisationOfConstants(char *text, size_tree_t index) {
+    while (true) {
+        size_tree_t branch = searchConstNode(this, root_);
+        if (!branch) break;
+        optimisationOfConstNode(branch);
+        recordExpression(text);
+//        writeTexInText(text, index);
+        strcat(text, "\n");
+//        dump();
+    }
+}
+
+size_tree_t Tree::searchConstNode(Tree *tree, size_tree_t index) {
+    size_tree_t found = 0;
+    if (tree->one_element[one_element[index].left_].type_ == TYPE_NUMBER
+        && tree->one_element[one_element[index].right_].type_ == TYPE_NUMBER)
+        return index;
+
+    if (tree->one_element[index].left_)
+        found = searchConstNode(tree, tree->one_element[index].left_);
+
+    if (!found && tree->one_element[index].right_)
+        found = searchConstNode(tree, tree->one_element[index].right_);
+
+    return found;
+}
+
+void Tree::optimisationOfConstNode(size_tree_t index) {
+    switch ((int) (one_element[index].value_ + 1e-12)) {
+        case OPERATOR_ADD:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ +
+                    one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+        case OPERATOR_SUB:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ -
+                                        one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+
+        case OPERATOR_MUL:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ *
+                                        one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+
+        case OPERATOR_DIV:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ /
+                                        one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+    }
+
+    char name[100] = {};
+    sprintf(name, "%lg", one_element[index].value_);
+    int length = (int) (strlen(name) + 1);
+    one_element[index].name_ = strcpy((all_names + size_names_), name);
+    if (one_element[index].name_ == nullptr)
+        printf("Error in strcpy\n");
+    size_names_ += length;
+
+//    one_element[index].name_ = name;
+
+}
+
+void Tree::clearNode(size_tree_t index) {
+// i don't know why i write this "if" last night //
+// ohh, may be i understand
+
+    if (one_element[one_element[index].parent_].left_ == index)
+        {
+        one_element[one_element[index].parent_].left_ = 0;
+//        one_element[index].parent_ = -1;
+//        one_element[index].type_ = -1;
+//        one_element[index].value_ = -1;
+//        one_element[index].right_ = free_;
+//        free_ = index;
+//
+//        one_element[index].name_ = nullptr;
+        } else
+        one_element[one_element[index].parent_].right_ = 0;
+
+
+    one_element[index].parent_ = -1;
+    one_element[index].type_ = -1;
+    one_element[index].value_ = -1;
+    one_element[index].right_ = free_;
+    free_ = index;
+
+    one_element[index].name_ = nullptr;
+
+}
+
+size_tree_t Tree::createNumber(Tree* tree, value_t value) {
+    char name[100] = {};
+    sprintf(name, "%lg", value);
+
+    size_tree_t new_index = tree->createNewObject(name, 0, 0);
+    tree->one_element[new_index].type_ = TYPE_NUMBER;
+    tree->one_element[new_index].value_ = value;
+    return new_index;
+}
+
+void Tree::optimisationUnusedMembers(char *text) {
+    while (true) {
+        size_tree_t branch = searchUnusedNode(this, root_);
+        if (!branch) break;
+        optimisationOfUnusedNode(branch);
+        recordExpression(text);
+//        writeTexInText(text, index);
+        strcat(text, "\n");
+//        dump();
+    }
+}
+
+size_tree_t Tree::searchUnusedNode(Tree* tree, size_tree_t index) {
+    size_tree_t found = 0;
+    if (checkUnusedNode(tree, index))
+        return index;
+
+    if (tree->one_element[index].left_)
+        found = searchUnusedNode(tree, tree->one_element[index].left_);
+
+    if (!found && tree->one_element[index].right_)
+        found = searchUnusedNode(tree, tree->one_element[index].right_);
+
+    return found;
+}
+
+bool Tree::checkUnusedNode(Tree* tree, size_tree_t index) {
+//    size_tree_t found = 0;
+
+#define LV tree->one_element[one_element[index].left_].value_
+#define RV tree->one_element[one_element[index].right_].value_
+#define LT tree->one_element[one_element[index].left_].type_
+#define RT tree->one_element[one_element[index].right_].type_
+#define TYPE tree->one_element[index].type_
+#define VALUE tree->one_element[index].value_
+
+    if (RT == TYPE_NUMBER
+
+        && (tree->one_element[one_element[index].right_].value_ == 0
+         || tree->one_element[one_element[index].right_].value_ == 1)
+
+        && tree->one_element[index].type_ == TYPE_OPERATOR
+        && tree->one_element[index].value_ == OPERATOR_POW)
+        return true;
+
+    if (tree->one_element[one_element[index].left_].type_ == TYPE_NUMBER
+
+        && (tree->one_element[one_element[index].left_].value_ == 1
+        || tree->one_element[one_element[index].right_].value_ > 0)
+
+        && tree->one_element[index].type_ == TYPE_OPERATOR
+        && tree->one_element[index].value_ == OPERATOR_POW)
+        return true;
+
+    if (tree->one_element[one_element[index].left_].type_ == TYPE_NUMBER
+
+        && (tree->one_element[one_element[index].left_].value_ == 1
+            || tree->one_element[one_element[index].right_].value_ > 0)
+
+        && tree->one_element[index].type_ == TYPE_OPERATOR
+        && tree->one_element[index].value_ == OPERATOR_POW)
+        return true;
+
+
+    if (((LT == TYPE_NUMBER && (LV == 1 || LV == 0))
+      || (RT == TYPE_NUMBER && (RV == 1 || RV == 0)) )
+
+        && tree->one_element[index].type_ == TYPE_OPERATOR
+        && tree->one_element[index].value_ == OPERATOR_MUL)
+        return true;
+
+    if ((RT == TYPE_NUMBER && RV == 1)
+        && tree->one_element[index].type_ == TYPE_OPERATOR
+        && tree->one_element[index].value_ == OPERATOR_DIV)
+        return true;
+
+    if (((LT == TYPE_NUMBER && LV == 0)
+      || (RT == TYPE_NUMBER && RV == 0))
+        && tree->one_element[index].type_ == TYPE_OPERATOR
+        && tree->one_element[index].value_ == OPERATOR_ADD)
+        return true;
+
+#undef TYPE
+#undef VALUE
+#undef LT
+#undef RT
+#undef LV
+#undef RV
+    return false;
+}
+
+void Tree::optimisationOfUnusedNode(size_tree_t index) {
+    switch ((int) (one_element[index].value_ + 1e-12)) {
+        case OPERATOR_ADD: case OPERATOR_SUB: {
+            size_tree_t temp_index = 0, zero_num = 0;
+            if (one_element[one_element[index].left_].type_ == TYPE_NUMBER
+                && one_element[one_element[index].left_].value_ == 0) {
+                temp_index = one_element[index].right_;
+                zero_num = one_element[index].left_;
+            } else{
+                zero_num = one_element[index].right_;
+                temp_index = one_element[index].left_;
+            }
+            one_element[temp_index].parent_ = one_element[index].parent_;
+
+            if (one_element[one_element[index].parent_].left_ == index)
+                one_element[one_element[index].parent_].left_ = temp_index;
+            else
+                one_element[one_element[index].parent_].right_ = temp_index;
+
+            if (index == root_)
+                root_ = temp_index;
+//            one_element[index].type_ = TYPE_NUMBER;
+//            one_element[index].value_ = one_element[one_element[index].left_].value_ +
+//                                        one_element[one_element[index].right_].value_;
+//            clearNode(one_element[index].left_);
+            clearNode(index);
+            clearNode(zero_num);
+
+            dump();
+            break;
+        }
+        /*case OPERATOR_SUB:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ -
+                                        one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;*/
+
+        case OPERATOR_MUL:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ *
+                                        one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+
+        case OPERATOR_DIV:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = one_element[one_element[index].left_].value_ /
+                                        one_element[one_element[index].right_].value_;
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+    }
+
+    char name[100] = {};
+    sprintf(name, "%lg", one_element[index].value_);
+    int length = (int) (strlen(name) + 1);
+    one_element[index].name_ = strcpy((all_names + size_names_), name);
+    if (one_element[index].name_ == nullptr)
+        printf("Error in strcpy\n");
+    size_names_ += length;
+
+//    one_element[index].name_ = name;
+
+}
+
