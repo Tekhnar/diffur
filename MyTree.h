@@ -38,19 +38,15 @@ struct elem {
 struct Tree {
 
 
-    explicit Tree (size_tree_t DEFAULT_LENGHT = 50, size_tree_t DEFAULT_LENGHT_NAMES = 1000);
+    explicit Tree (size_tree_t DEFAULT_LENGHT = 50, size_tree_t DEFAULT_LENGHT_NAMES = 2000);
     ~Tree ();
     void dump ();
-    void latex (const char* name);
+    void latex (Tree* origin,const char* name);
 
     bool readTreeFromFile (const char name_file[]);
     bool writeTreeInFile (const char name_file[]);
 
-    void play ();
-
     void fullDifferential (Tree *diff_tree);
-
-    void definition (size_tree_t index);
 
     Tree(const Tree& that) = delete;
 private:
@@ -64,10 +60,15 @@ private:
     size_tree_t free_;
 
     void recordExpression (char* text);
+    void writeFunExplanations (char* text, int num_action);
 
     void allSimplifications (char* text);
-    void optimisationOfConstants (char* text, size_tree_t index);
-    void optimisationUnusedMembers(char* text);
+    int optimisationOfConstants (char* text);
+    int optimisationUnusedMembers(char* text);
+
+    void optimisationOfUnusedNodeAddSub (size_tree_t index);
+    void optimisationOfUnusedNodeMul(size_tree_t index);
+    void optimisationOfUnusedNodePow(size_tree_t index);
 
     size_tree_t searchUnusedNode (Tree* tree , size_tree_t index);
     bool checkUnusedNode (Tree* tree, size_tree_t index);
@@ -96,6 +97,7 @@ private:
     size_tree_t searchConstNode (Tree* tree, size_tree_t index);
     void optimisationOfConstNode (size_tree_t index);
     void clearNode (size_tree_t index);
+    void clearBranch (size_tree_t index);
 
     size_tree_t diff (Tree *diff_tree,const size_tree_t index);
     size_tree_t differentialOfAddSub (bool isAdd, Tree *diff_tree, size_tree_t left, size_tree_t right);
@@ -103,6 +105,8 @@ private:
     static size_tree_t differentialOfDiv(Tree *diff_tree, size_tree_t left, size_tree_t right);
     static size_tree_t differentialOfPow(Tree *diff_tree, size_tree_t left, size_tree_t right);
 
+
+    void AutoLenghtIncrease(int factor = 2);
     size_tree_t createNewNode (Tree *diff_tree, size_tree_t type, value_t value);
     size_tree_t copyNode (Tree *diff_tree, size_tree_t index);
     size_tree_t createNumber(Tree* tree, value_t value);
@@ -119,12 +123,7 @@ private:
 
     size_tree_t seeBranch (char* name, size_tree_t index);
     size_tree_t checkName (char* name);
-    void addNewObjectInTree (char* name, size_tree_t index);
 
-    void writeInConsole (char* text);
-    bool acceptAnswer ();
-    void say (int command, char* = nullptr);
-    void searchPlay ();
 
     static void writeNameInTextFromTree (char* text, char* name);
     void writeTree (char* text, size_tree_t index);

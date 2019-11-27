@@ -163,6 +163,7 @@ void Tree::readName(char **read_now, char *name)
 
 size_tree_t Tree::createNewObject(char name[], size_tree_t left, size_tree_t right, size_tree_t parent)
 {
+    AutoLenghtIncrease();
     size_tree_t new_index = free_;
     free_ = one_element[free_].right_;
 
@@ -189,6 +190,7 @@ size_tree_t Tree::createNewObject(char name[], size_tree_t left, size_tree_t rig
     }*/
     size_++;
 //    root_ = new_index;
+dump();
     return new_index;
 }
 
@@ -256,8 +258,8 @@ void Tree::dump()
 
     for (size_tree_t i = 1; i < length_; i++){
         if (one_element[i].parent_ != -1){
-            fprintf(file, "Index%d [shape=record, label=\" <left>  %d | '%s' | {Type: %d | Value: %lg} | <right> %d \",",
-                i, one_element[i].left_, one_element[i].name_, one_element[i].type_,one_element[i].value_, one_element[i].right_);
+            fprintf(file, "Index%d [shape=record, label=\" <left>  %d | {'%s' | Par: %d} | {Index: %d | Type: %d | Value: %lg} | <right> %d \",",
+                i, one_element[i].left_, one_element[i].name_,one_element[i].parent_, i, one_element[i].type_, one_element[i].value_, one_element[i].right_);
             switch (one_element[i].type_){
                 case TYPE_OPERATOR:
                     fprintf(file, "style=\"filled\", fillcolor=\"lightgrey\" ");
@@ -297,170 +299,12 @@ void Tree::dump()
     system("dot text_picture.dot -T png -o test.png");
 }
 
-void Tree::play()
-{
-
-    writeInConsole((char*) "Введите команду для игры\n");
-    char command[30] = {};
-    scanf("%s", command);
-
-    if (!strcmp(command, "игра"))
-        searchPlay();
-    if (!strcmp(command, "найти")) {
-        writeInConsole((char*) "Что надо найти?\n");
-        char read_name[100] = {};
-        scanf("%s", read_name);
-        writeInConsole((char*) "Индекс\n");
-        size_tree_t index = checkName(read_name);
-        if (index)
-            printf("%d\n", checkName(read_name));
-        else
-            writeInConsole((char*) "Нет такого имени!\n");
-    }
-    if (!strcmp(command, "определение")) {
-        writeInConsole((char*) "Что надо найти?\n");
-        char read_name[100] = {};
-        scanf("%s", read_name);
-//        writeInConsole("Индекс\n");
-//        printf("%d\n", checkName(read_name));
-        size_tree_t index = checkName(read_name);
-        if (index)
-            definition(index);
-        else
-            writeInConsole((char*) "Нет такого имени!\n");
-    }
-}
-
-void Tree::searchPlay()
-{
-    size_tree_t index = root_;
-    while (one_element[index].left_ != 0 && one_element[index].right_ != 0) {
-//        printf("%s\n", one_element[index].name_);
-        writeInConsole(one_element[index].name_);
-        bool answer = acceptAnswer();
-        if (answer) index = one_element[index].left_;
-        else index = one_element[index].right_;
-    }
-
-    say(2, one_element[index].name_);
-    if (!acceptAnswer()){
-        say(3);
-        char new_name[100] = {};
-        scanf(" %[^\n]", new_name);
-
-        if (!checkName(new_name))
-            addNewObjectInTree(new_name, index);
-        else {
-            say(5, new_name);
-        }
-    }
-}
-
-void Tree::say(int command, char* text)
-{
-//    assert(text);
-    char full_text[200] = {};
-//    char* full_text = nullptr;
-    switch (command){
-        case 1: {
-            strcat(full_text, "Неизвестная команда, повторите ввод\n");
-            writeInConsole(full_text);
-            break;
-        }
-        case 2: {
-            strcat(full_text,"Это ");
-            strcat(full_text, text);
-            strcat(full_text, "?\n");
-            writeInConsole(full_text);
-            break;
-        }
-        case 3: {
-            strcat(full_text,"Тогда что это?\n");
-            writeInConsole(full_text);
-            break;
-        }
-        case 4: {
-            strcat(full_text,"Чем он отличается от ");
-            strcat(full_text, text);
-            strcat(full_text, "?\n");
-            writeInConsole(full_text);
-            break;
-        }
-        case 5: {
-            strcat(full_text,"Я уже знаю ");
-            strcat(full_text, text);
-            strcat(full_text, "\n");
-            writeInConsole(full_text);
-            break;
-        }
-        case 6: {
-            strcat(full_text, text);
-            strcat(full_text, "\b ");
-            writeInConsole(full_text);
-            break;
-        }
-        case 7: {
-            strcat(full_text, "не ");
-            strcat(full_text, text);
-            strcat(full_text, "\b ");
-            writeInConsole(full_text);
-            break;
-        }
-        case 8: {
-            strcat(full_text, text);
-            strcat(full_text, " ");
-            writeInConsole(full_text);
-            break;
-        }
-        default: {
-            writeInConsole((char*)"Неизвестная команда печати\n");
-        }
-    }
-}
-
-void Tree::writeInConsole(char *text)
-{
-    assert(text);
-    printf("%s", text);
-
-//    char full_text[200] = {};
-//    strcat(full_text, "espeak -s 200 \"");
-//    strcat(full_text, text);
-//    strcat(full_text, "\"");
-//    system(full_text);
-}
-
-bool Tree::acceptAnswer()
-{
-    while (true) {
-        char answer[20] = {};
-        scanf("%s", answer);
-        if (!strcmp("да", answer)) {
-            return true;
-        } else if (!strcmp("нет", answer)) {
-            return false;
-        } else {
-            say(1);
-        }
-    }
-}
 size_tree_t Tree::checkName(char *name)
 {
     assert(name);
     return seeBranch(name, root_);
 }
-/*
-bool Tree::seeBranch(char* name, size_tree_t index)
-{
-    if (!strcmp(one_element[index].name_, name)) return true;
 
-    if (one_element[index].left_ != 0)
-        if (seeBranch(name, one_element[index].left_)) return true;
-    if (one_element[index].right_ != 0)
-        if (seeBranch(name, one_element[index].right_)) return true;
-
-    return false;
-}*/
 
 size_tree_t Tree::seeBranch(char* name, size_tree_t index)
 {
@@ -479,49 +323,7 @@ size_tree_t Tree::seeBranch(char* name, size_tree_t index)
     return 0;
 }
 
-void Tree::addNewObjectInTree(char *name, size_tree_t index)
-{
-    say(4, one_element[index].name_);
-    char new_name[100] = {};
-    scanf(" %[^\n]", new_name);
-    strcat(new_name, "?");
 
-    size_tree_t temp_index = one_element[index].parent_;
-    size_tree_t new_element = createNewObject(name, 0, 0);
-    size_tree_t new_question = createNewObject(new_name, new_element, index,
-            one_element[index].parent_);
-
-    if (one_element[temp_index].left_ == index)
-        one_element[temp_index].left_ = new_question;
-    if (one_element[temp_index].right_ == index)
-        one_element[temp_index].right_ = new_question;
-}
-
-void Tree::definition(size_tree_t index)
-{
-    Stack_t stack = {};
-    StackInit(&stack);
-
-    searchParents(&stack, index);
-
-    say(8, one_element[index].name_);
-
-    size_tree_t new_index = 0, last_index = 0;
-    StackPop(&stack, &new_index);
-    last_index = new_index;
-    while (true){
-        StackPop(&stack, &new_index);
-        if (new_index == one_element[last_index].left_ || new_index == root_) {
-            say(6, one_element[last_index].name_);
-        }
-        else {
-            say(7,one_element[last_index].name_);
-        }
-        last_index = new_index;
-        if (index == new_index) break;
-    }
-//    writeInConsole(one_element[index].name_);
-}
 
 void Tree::searchParents(Stack_t *stack, size_tree_t index)
 {
@@ -556,25 +358,6 @@ bool Tree::isOperator (char *name, size_tree_t index)
     OPER(cos, OPERATOR_COS)
     OPER(ln, OPERATOR_LN)
 
-
-/*
-    if (!strcmp("+", name)) {
-        one_element[index].type_ = TYPE_OPERATOR;
-        one_element[index].type_ = OPERATOR_ADD;
-    }
-    if (!strcmp("-", name)) {
-        one_element[index].type_ = TYPE_OPERATOR;
-        one_element[index].type_ = OPERATOR_SUB;
-    }
-    if (!strcmp("*", name)) {
-        one_element[index].type_ = TYPE_OPERATOR;
-        one_element[index].type_ = OPERATOR_MUL;
-    }
-    if (!strcmp("/", name)) {
-        one_element[index].type_ = TYPE_OPERATOR;
-        one_element[index].type_ = OPERATOR_DIV;
-    }
-*/
 #undef OPER
 }
 
@@ -615,6 +398,8 @@ bool Tree::isVariable(char *name, size_tree_t index) {
 
 size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
     assert(index!= 0);
+    diff_tree->dump();
+
     switch (one_element[index].type_)
     {
         case TYPE_NUMBER:
@@ -624,11 +409,13 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
             return createNewNode(diff_tree, TYPE_NUMBER, 1);
         case TYPE_OPERATOR:
 
-#define PLUS(left, right) differentialOfAddSub(true,diff_tree, left, right)
-#define MINUS(left, right) differentialOfAddSub(false,diff_tree, left, right)
-#define MUL(left,right) differentialOfMul(diff_tree, left, right)
 #define DIV(left, right) differentialOfDiv(diff_tree, left, right)
 #define POW(left, right) differentialOfPow(diff_tree, left, right)
+#define PLUS(left, right) differentialOfAddSub(true, diff_tree, left, right)
+#define MINUS(left, right) differentialOfAddSub(false, diff_tree, left, right)
+#define MUL(left,right) differentialOfMul(diff_tree, left, right)
+
+
 
 #define dL diff(diff_tree, one_element[index].left_)
 #define dR diff(diff_tree, one_element[index].right_)
@@ -647,12 +434,15 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
                     break;
                 case OPERATOR_MUL:
                     return PLUS(MUL(dL,cR),MUL(cL,dR));
+                    break;
 //                    return diff_add()
                 case OPERATOR_DIV:
-                    return DIV(MINUS(MUL(dL,cR), MUL(cL,dR)),POW(cR,crNum(2)));
-             /*   case OPERATOR_POW:
-//                    if (isConstBranch(this, one_element[index].left_))
-                  */  return POW(one_element[index].left_, one_element[index].right_);
+                    return DIV(MINUS(MUL(dL,cR), MUL(cL,dR)), POW(cR,crNum(2)));
+                    break;
+                    /*   case OPERATOR_POW:
+       //                    if (isConstBranch(this, one_element[index].left_))
+       //                  */
+//             return POW(one_element[index].left_, one_element[index].right_);
             }
             break;
 
@@ -708,7 +498,7 @@ size_tree_t Tree::differentialOfAddSub(bool isAdd, Tree* diff_tree, size_tree_t 
     if(isAdd)
         return diff_tree->createNewObject((char*) "+", left, right);
     else
-        diff_tree->createNewObject((char*) "-", left, right);
+        return diff_tree->createNewObject((char*) "-", left, right);
 }
 
 size_tree_t Tree::differentialOfMul(Tree *diff_tree, size_tree_t left, size_tree_t right) {
@@ -729,8 +519,8 @@ size_tree_t Tree::copyBranch(Tree *diff_tree, size_tree_t index) {
         right = copyBranch(diff_tree, this->one_element[index].right_);
 
     size_tree_t new_index = diff_tree->createNewObject(this->one_element[index].name_, left, right);
-    diff_tree->one_element[new_index].type_ = this->one_element[index].type_;
-    diff_tree->one_element[new_index].value_ = this->one_element[index].value_;
+//    diff_tree->one_element[new_index].type_ = this->one_element[index].type_;
+//    diff_tree->one_element[new_index].value_ = this->one_element[index].value_;
 
     return new_index;
 }
@@ -774,13 +564,13 @@ bool Tree::isConstBranch (Tree *tree, size_tree_t index){
     return found;
 }*/
 
-void Tree::latex(const char* name)
+void Tree::latex(Tree* origin, const char* name)
 {
     FILE* file = fopen(name, "wb");
     startPrintLatex(file);
     char* text = (char*) calloc(40000, sizeof(char));
 
-    recordExpression(text);
+    origin->recordExpression(text);
     allSimplifications(text);
 //    writeTexInText(text, root_);
 //    deleteLastBracket(text);
@@ -790,7 +580,10 @@ void Tree::latex(const char* name)
     endPrintLatex(file);
     fclose(file);
     free(text);
-//    system
+    char name_file[100] = "pdflatex ";
+    strcat(name_file, name);
+    system(name_file);
+
 }
 
 void Tree::startPrintLatex (FILE* file)
@@ -816,9 +609,6 @@ void Tree::writeNameInTextFromTree(char *text, char *name) {
 
 void Tree::writeTexInText(char *text, size_tree_t index) {
 #define Strcat(text, string) priorityStrcat(text, string, priority, index)
-//    char* last_text = nullptr;
-//    if (index == root_)
-//        last_text = strchr(text, '\0');
 
     if (one_element[index].left_ == 0 && one_element[index].right_ == 0){
 //        writeNameInTextFromTree(text, one_element[index].name_);
@@ -826,9 +616,7 @@ void Tree::writeTexInText(char *text, size_tree_t index) {
     }
     else
     if (one_element[index].left_ != 0 && one_element[index].right_ == 0){
-//        bool priority = false;
-//        if (priorityFunction(index) > priorityFunction(one_element[index].left_))
-//            priority = true;
+
         bool priority = comparePriority(index, one_element[index].parent_);
 
         Strcat(text, "(");
@@ -869,7 +657,6 @@ void Tree::writeTexInText(char *text, size_tree_t index) {
 }
 
 int Tree::priorityFunction(size_tree_t index) {
-//    if ()
     if (one_element[index].type_ == 0)
         return 1;
     if (one_element[index].type_ == TYPE_NUMBER ||
@@ -911,9 +698,9 @@ void Tree::priorityStrcat(char *text, const char *string, bool priority, size_tr
 
 bool Tree::comparePriority(size_tree_t first, size_tree_t second) {
     if (one_element[second].type_ == TYPE_OPERATOR
-    && (int) (one_element[second].value_ + 1e-12) == OPERATOR_DIV
+    && (int) (one_element[second].value_) == OPERATOR_DIV
     && one_element[first].type_ == TYPE_OPERATOR)
-        return true;
+        return false;
     if (priorityFunction(first) < priorityFunction(second))
         return true;
     return false;
@@ -964,21 +751,33 @@ void Tree::recordExpression(char *text) {
 
 void Tree::allSimplifications(char *text) {
     strcat(text, "Немного преобразуем полученную штуку, чтобы выражение выглядело ещё менее понятным.\n");
-    optimisationOfConstants(text, root_);
-    optimisationUnusedMembers(text);
-
+    recordExpression(text);
+    while (true){
+        int num_action = 0;
+        num_action += optimisationOfConstants(text);
+        num_action += optimisationUnusedMembers(text);
+        if (!num_action)
+            break;
+    }
 }
 
-void Tree::optimisationOfConstants(char *text, size_tree_t index) {
+int Tree::optimisationOfConstants(char *text) {
+    int num_optimisation = 0;
+    dump();
     while (true) {
         size_tree_t branch = searchConstNode(this, root_);
         if (!branch) break;
         optimisationOfConstNode(branch);
-        recordExpression(text);
 //        writeTexInText(text, index);
         strcat(text, "\n");
 //        dump();
+        num_optimisation++;
     }
+    writeFunExplanations(text, num_optimisation);
+    if (num_optimisation)
+        recordExpression(text);
+//    recordExpression(text);
+    return num_optimisation;
 }
 
 size_tree_t Tree::searchConstNode(Tree *tree, size_tree_t index) {
@@ -1028,6 +827,15 @@ void Tree::optimisationOfConstNode(size_tree_t index) {
             clearNode(one_element[index].left_);
             clearNode(one_element[index].right_);
             break;
+        case OPERATOR_POW:
+            one_element[index].type_ = TYPE_NUMBER;
+            one_element[index].value_ = pow (one_element[one_element[index].left_].value_, one_element[one_element[index].right_].value_);
+            clearNode(one_element[index].left_);
+            clearNode(one_element[index].right_);
+            break;
+        default:
+            printf("Unknow operator\n");
+            break;
     }
 
     char name[100] = {};
@@ -1056,7 +864,8 @@ void Tree::clearNode(size_tree_t index) {
 //        free_ = index;
 //
 //        one_element[index].name_ = nullptr;
-        } else
+        }else
+    if (one_element[one_element[index].parent_].right_ == index)
         one_element[one_element[index].parent_].right_ = 0;
 
 
@@ -1080,16 +889,23 @@ size_tree_t Tree::createNumber(Tree* tree, value_t value) {
     return new_index;
 }
 
-void Tree::optimisationUnusedMembers(char *text) {
+int Tree::optimisationUnusedMembers(char *text) {
+    int num_optimisation = 0;
+    dump();
     while (true) {
         size_tree_t branch = searchUnusedNode(this, root_);
         if (!branch) break;
         optimisationOfUnusedNode(branch);
-        recordExpression(text);
+//        recordExpression(text);
 //        writeTexInText(text, index);
         strcat(text, "\n");
-//        dump();
+        dump();
+        num_optimisation++;
     }
+    writeFunExplanations(text, num_optimisation);
+    if (num_optimisation)
+        recordExpression(text);
+    return num_optimisation;
 }
 
 size_tree_t Tree::searchUnusedNode(Tree* tree, size_tree_t index) {
@@ -1117,49 +933,45 @@ bool Tree::checkUnusedNode(Tree* tree, size_tree_t index) {
 #define VALUE tree->one_element[index].value_
 
     if (RT == TYPE_NUMBER
+        && (RV == 0 || RV == 1)
 
-        && (tree->one_element[one_element[index].right_].value_ == 0
-         || tree->one_element[one_element[index].right_].value_ == 1)
-
-        && tree->one_element[index].type_ == TYPE_OPERATOR
-        && tree->one_element[index].value_ == OPERATOR_POW)
+        && TYPE == TYPE_OPERATOR && VALUE == OPERATOR_POW)
         return true;
 
-    if (tree->one_element[one_element[index].left_].type_ == TYPE_NUMBER
+    if (LT == TYPE_NUMBER
+        && (LV == 1 || RV > 0)
 
-        && (tree->one_element[one_element[index].left_].value_ == 1
-        || tree->one_element[one_element[index].right_].value_ > 0)
-
-        && tree->one_element[index].type_ == TYPE_OPERATOR
-        && tree->one_element[index].value_ == OPERATOR_POW)
+        && TYPE == TYPE_OPERATOR && VALUE == OPERATOR_POW)
         return true;
 
-    if (tree->one_element[one_element[index].left_].type_ == TYPE_NUMBER
+    if (LT == TYPE_NUMBER
+        && (LV == 1 || RV > 0)
 
-        && (tree->one_element[one_element[index].left_].value_ == 1
-            || tree->one_element[one_element[index].right_].value_ > 0)
-
-        && tree->one_element[index].type_ == TYPE_OPERATOR
-        && tree->one_element[index].value_ == OPERATOR_POW)
+        && TYPE == TYPE_OPERATOR && VALUE == OPERATOR_POW)
         return true;
-
 
     if (((LT == TYPE_NUMBER && (LV == 1 || LV == 0))
       || (RT == TYPE_NUMBER && (RV == 1 || RV == 0)) )
 
-        && tree->one_element[index].type_ == TYPE_OPERATOR
-        && tree->one_element[index].value_ == OPERATOR_MUL)
+        && TYPE == TYPE_OPERATOR && VALUE == OPERATOR_MUL)
         return true;
 
     if ((RT == TYPE_NUMBER && RV == 1)
-        && tree->one_element[index].type_ == TYPE_OPERATOR
-        && tree->one_element[index].value_ == OPERATOR_DIV)
+
+        && TYPE == TYPE_OPERATOR && VALUE == OPERATOR_DIV)
         return true;
 
     if (((LT == TYPE_NUMBER && LV == 0)
       || (RT == TYPE_NUMBER && RV == 0))
-        && tree->one_element[index].type_ == TYPE_OPERATOR
-        && tree->one_element[index].value_ == OPERATOR_ADD)
+
+        && TYPE == TYPE_OPERATOR
+        && (VALUE == OPERATOR_ADD))
+        return true;
+
+    if (((RT == TYPE_NUMBER && RV == 0))
+
+        && TYPE == TYPE_OPERATOR
+        && (VALUE == OPERATOR_SUB))
         return true;
 
 #undef TYPE
@@ -1174,15 +986,17 @@ bool Tree::checkUnusedNode(Tree* tree, size_tree_t index) {
 void Tree::optimisationOfUnusedNode(size_tree_t index) {
     switch ((int) (one_element[index].value_ + 1e-12)) {
         case OPERATOR_ADD: case OPERATOR_SUB: {
-            size_tree_t temp_index = 0, zero_num = 0;
-            if (one_element[one_element[index].left_].type_ == TYPE_NUMBER
-                && one_element[one_element[index].left_].value_ == 0) {
-                temp_index = one_element[index].right_;
-                zero_num = one_element[index].left_;
-            } else{
-                zero_num = one_element[index].right_;
-                temp_index = one_element[index].left_;
-            }
+            optimisationOfUnusedNodeAddSub(index);
+            break;
+        }
+
+        case OPERATOR_MUL:
+            optimisationOfUnusedNodeMul(index);
+            break;
+
+        case OPERATOR_DIV: {
+
+            size_tree_t temp_index = one_element[index].left_;
             one_element[temp_index].parent_ = one_element[index].parent_;
 
             if (one_element[one_element[index].parent_].left_ == index)
@@ -1192,39 +1006,18 @@ void Tree::optimisationOfUnusedNode(size_tree_t index) {
 
             if (index == root_)
                 root_ = temp_index;
-//            one_element[index].type_ = TYPE_NUMBER;
-//            one_element[index].value_ = one_element[one_element[index].left_].value_ +
-//                                        one_element[one_element[index].right_].value_;
-//            clearNode(one_element[index].left_);
-            clearNode(index);
-            clearNode(zero_num);
 
-            dump();
+            clearNode(index);
+            clearNode(one_element[index].right_);
             break;
         }
-        /*case OPERATOR_SUB:
-            one_element[index].type_ = TYPE_NUMBER;
-            one_element[index].value_ = one_element[one_element[index].left_].value_ -
-                                        one_element[one_element[index].right_].value_;
-            clearNode(one_element[index].left_);
-            clearNode(one_element[index].right_);
+
+        case OPERATOR_POW:
+            optimisationOfUnusedNodePow(index);
+            break;
+
+        /*case OPERATOR_POW:
             break;*/
-
-        case OPERATOR_MUL:
-            one_element[index].type_ = TYPE_NUMBER;
-            one_element[index].value_ = one_element[one_element[index].left_].value_ *
-                                        one_element[one_element[index].right_].value_;
-            clearNode(one_element[index].left_);
-            clearNode(one_element[index].right_);
-            break;
-
-        case OPERATOR_DIV:
-            one_element[index].type_ = TYPE_NUMBER;
-            one_element[index].value_ = one_element[one_element[index].left_].value_ /
-                                        one_element[one_element[index].right_].value_;
-            clearNode(one_element[index].left_);
-            clearNode(one_element[index].right_);
-            break;
     }
 
     char name[100] = {};
@@ -1239,3 +1032,189 @@ void Tree::optimisationOfUnusedNode(size_tree_t index) {
 
 }
 
+void Tree::optimisationOfUnusedNodeAddSub(size_tree_t index) {
+    size_tree_t temp_index = 0, zero_num = 0;
+    if (one_element[one_element[index].left_].type_ == TYPE_NUMBER
+        && one_element[one_element[index].left_].value_ == 0) {
+        temp_index = one_element[index].right_;
+        zero_num = one_element[index].left_;
+    } else{
+        zero_num = one_element[index].right_;
+        temp_index = one_element[index].left_;
+    }
+    one_element[temp_index].parent_ = one_element[index].parent_;
+
+    if (one_element[one_element[index].parent_].left_ == index)
+        one_element[one_element[index].parent_].left_ = temp_index;
+    else
+        one_element[one_element[index].parent_].right_ = temp_index;
+
+    if (index == root_)
+        root_ = temp_index;
+
+    clearNode(index);
+    clearNode(zero_num);
+
+//    dump();
+}
+
+void Tree::optimisationOfUnusedNodeMul(size_tree_t index) {
+    size_tree_t temp_index = 0, unused_index = 0;
+    if ((one_element[one_element[index].left_].type_ == TYPE_NUMBER
+     && one_element[one_element[index].left_].value_ == 0)
+     || (one_element[one_element[index].right_].type_ == TYPE_NUMBER
+        && one_element[one_element[index].right_].value_ == 0))
+    {
+        one_element[index].type_ = TYPE_NUMBER;
+        one_element[index].value_ = 0;
+        clearBranch(one_element[index].left_);
+        clearBranch(one_element[index].right_);
+        return;
+    }
+
+    {
+    if (one_element[one_element[index].left_].type_ == TYPE_NUMBER
+         && one_element[one_element[index].left_].value_ == 1) {
+        temp_index = one_element[index].right_;
+        unused_index = one_element[index].left_;
+    } else {
+        temp_index = one_element[index].left_;
+        unused_index = one_element[index].right_;
+    }
+
+    one_element[temp_index].parent_ = one_element[index].parent_;
+
+    if (one_element[one_element[index].parent_].left_ == index)
+        one_element[one_element[index].parent_].left_ = temp_index;
+    else
+        one_element[one_element[index].parent_].right_ = temp_index;
+
+    if (index == root_)
+        root_ = temp_index;
+
+    clearNode(index);
+    clearNode(unused_index);
+    return;
+    }
+}
+
+void Tree::optimisationOfUnusedNodePow(size_tree_t index) {
+    size_tree_t temp_index = 0, unused_index = 0;
+    if ((one_element[one_element[index].right_].type_ == TYPE_NUMBER
+         && one_element[one_element[index].right_].value_ == 0))
+    {
+        one_element[index].type_ = TYPE_NUMBER;
+        one_element[index].value_ = 1;
+        clearNode(one_element[index].left_);
+        clearNode(one_element[index].right_);
+        return;
+    }
+
+    if ((one_element[one_element[index].right_].type_ == TYPE_NUMBER
+         && one_element[one_element[index].right_].value_ == 1))
+    {
+        temp_index = one_element[one_element[index].parent_].left_;
+        unused_index = one_element[one_element[index].parent_].right_;
+        one_element[temp_index].parent_ = one_element[index].parent_;
+
+
+        if (index == root_)
+            root_ = temp_index;
+
+        clearNode(index);
+        clearNode(unused_index);
+        return;
+    }
+
+    if ((one_element[one_element[index].left_].type_ == TYPE_NUMBER
+         && one_element[one_element[index].left_].value_ == 1))
+    {
+        one_element[index].type_ = TYPE_NUMBER;
+        one_element[index].value_ = 1;
+        clearNode(one_element[index].left_);
+        clearNode(one_element[index].right_);
+        return;
+    }
+}
+
+void Tree::writeFunExplanations(char *text, int num_action) {
+    int num_phrase = 0;
+    if (num_action >= 10){
+        num_phrase = rand()%3;
+        switch (num_phrase){
+            case 0:
+                strcat(text, "Очевидно, что\n");
+                break;
+            case 1:
+                strcat(text, "Легко видеть, что\n");
+                break;
+            case 2:
+                strcat(text, "Я сам не понял как так получилось, но вот\n");
+                break;
+        }
+    }
+
+    if (num_action < 10 && num_action >= 5) {
+        num_phrase = rand() % 3;
+        switch (num_phrase){
+            case 0:
+                strcat(text, "Если найденная $n$-я производная нигде не используется в дальнейшем,"
+                             "то упрощать полученное выражение вряд ли имеет смысл, но мы это зачем-то делаем\n");
+                break;
+            case 1:
+                strcat(text, "Аналогично получаем\n");
+                break;
+            case 2:
+                strcat(text, "Из предыдущего преобразования закономерно вытекает следующее\n");
+                break;
+        }
+    }
+
+    if (num_action < 5 && num_action > 0) {
+        num_phrase = random() %3;
+        switch (num_phrase){
+            case 0:
+                strcat(text, "Дальнейшие преобразования намного сложнее, так как появлется неопределённость"
+                             ", решаемая с помощью Лагранжа\n");
+                break;
+            case 1:
+                strcat(text, "Следующие преобразования от нас потребуют 3 высших образования"
+                             " и наличие, как минимум, 2 красных диплома\n");
+                break;
+            case 2:
+                strcat(text, "Исходя из теормы 2.15 в 1 части Петровича получаем следующее\n");
+                break;
+        }
+    }
+
+}
+
+void Tree::AutoLenghtIncrease(int factor) {
+    if (size_ + 2 >= length_) {
+        size_tree_t last_length = length_;
+//        elem* last_address = one_element;
+        length_ *= factor;
+        one_element = (elem*) realloc(one_element, length_*sizeof(one_element[0]));
+        if (one_element){
+//            one_element = new_address;
+            fillingPoisonousValues();
+//            for (int i = 0; i < last_length; i++){
+//                new_address[i] = last_address[i];
+//            }
+
+//            free(one_element);
+//            one_element = new_address;
+
+        } else
+            printf("Error in new_adress\n");
+    }
+
+}
+
+void Tree::clearBranch(size_tree_t index) {
+    if (one_element[index].left_)
+        clearBranch(one_element[index].left_);
+    if (one_element[index].right_)
+        clearBranch(one_element[index].right_);
+    clearNode(index);
+}
