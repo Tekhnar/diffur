@@ -38,7 +38,7 @@ struct elem {
 struct Tree {
 
 
-    explicit Tree (size_tree_t DEFAULT_LENGHT = 50, size_tree_t DEFAULT_LENGHT_NAMES = 2000);
+    explicit Tree (size_tree_t DEFAULT_LENGHT = 50, size_tree_t DEFAULT_LENGTH_NAMES = 20);
     ~Tree ();
     void dump ();
     void latex (Tree* origin,const char* name);
@@ -106,7 +106,8 @@ private:
     static size_tree_t differentialOfPow(Tree *diff_tree, size_tree_t left, size_tree_t right);
 
 
-    void AutoLenghtIncrease(int factor = 2);
+    void autoLengthIncrease(int factor = 2);
+    void autoLengthNamesIncrease(int factor = 2);
     size_tree_t createNewNode (Tree *diff_tree, size_tree_t type, value_t value);
     size_tree_t copyNode (Tree *diff_tree, size_tree_t index);
     size_tree_t createNumber(Tree* tree, value_t value);

@@ -67,6 +67,8 @@ bool Tree::readTreeFromFile(const char* name_file) {
     text[length_of_file - 1] = '\0';
 
     loadingTree(text);
+
+    free(text);
 }
 
 void Tree::loadingTree(char* text)
@@ -163,7 +165,9 @@ void Tree::readName(char **read_now, char *name)
 
 size_tree_t Tree::createNewObject(char name[], size_tree_t left, size_tree_t right, size_tree_t parent)
 {
-    AutoLenghtIncrease();
+    autoLengthIncrease();
+    autoLengthNamesIncrease();
+
     size_tree_t new_index = free_;
     free_ = one_element[free_].right_;
 
@@ -199,6 +203,8 @@ bool Tree::writeTreeInFile(const char *name_file)
     char *text = (char*) calloc(50000, sizeof(char));
     writeTree(text, root_);
     writeFulTreeInFile(text, name_file);
+
+    free(text);
 }
 
 void Tree::writeFulTreeInFile (char* text, const char *name_file)
@@ -999,16 +1005,17 @@ void Tree::optimisationOfUnusedNode(size_tree_t index) {
             size_tree_t temp_index = one_element[index].left_;
             one_element[temp_index].parent_ = one_element[index].parent_;
 
-            if (one_element[one_element[index].parent_].left_ == index)
-                one_element[one_element[index].parent_].left_ = temp_index;
-            else
-                one_element[one_element[index].parent_].right_ = temp_index;
-
+            if (!one_element[index].parent_) {
+                if (one_element[one_element[index].parent_].left_ == index)
+                    one_element[one_element[index].parent_].left_ = temp_index;
+                else
+                    one_element[one_element[index].parent_].right_ = temp_index;
+            }
             if (index == root_)
                 root_ = temp_index;
 
-            clearNode(index);
             clearNode(one_element[index].right_);
+            clearNode(index);
             break;
         }
 
@@ -1113,8 +1120,12 @@ void Tree::optimisationOfUnusedNodePow(size_tree_t index) {
     if ((one_element[one_element[index].right_].type_ == TYPE_NUMBER
          && one_element[one_element[index].right_].value_ == 1))
     {
-        temp_index = one_element[one_element[index].parent_].left_;
-        unused_index = one_element[one_element[index].parent_].right_;
+//        temp_index = one_element[one_element[index].parent_].left_;
+//        unused_index = one_element[one_element[index].parent_].right_;
+//        one_element[temp_index].parent_ = one_element[index].parent_;
+
+        temp_index = one_element[index].left_;
+        unused_index = one_element[index].right_;
         one_element[temp_index].parent_ = one_element[index].parent_;
 
 
@@ -1189,7 +1200,7 @@ void Tree::writeFunExplanations(char *text, int num_action) {
 
 }
 
-void Tree::AutoLenghtIncrease(int factor) {
+void Tree::autoLengthIncrease(int factor) {
     if (size_ + 2 >= length_) {
         size_tree_t last_length = length_;
 //        elem* last_address = one_element;
@@ -1198,12 +1209,33 @@ void Tree::AutoLenghtIncrease(int factor) {
         if (one_element){
 //            one_element = new_address;
             fillingPoisonousValues();
-//            for (int i = 0; i < last_length; i++){
-//                new_address[i] = last_address[i];
-//            }
 
-//            free(one_element);
-//            one_element = new_address;
+        } else
+            printf("Error in new_adress\n");
+    }
+
+}
+
+void Tree::autoLengthNamesIncrease(int factor) {
+    if (size_names_ + 100 >= length_names_) {
+        size_tree_t last_length_names = length_names_;
+//        elem* last_address = one_element;
+        length_names_ *= factor;
+//        all_names = (char*) realloc(all_names, length_names_*sizeof(char));
+        char* new_names = (char*) calloc(length_names_, sizeof(char));
+
+        if (new_names){
+            for (int i = 0; i < last_length_names; i++)
+                new_names[i] = all_names[i];
+
+//            memset(all_names + last_length_names, '\0', length_names_ - last_length_names);
+            for (int i = 0; i < length_; i++) {
+                if (one_element[i].name_ != nullptr)
+                    one_element[i].name_ = one_element[i].name_ - all_names + new_names;
+            }
+
+            free(all_names);
+            all_names = new_names;
 
         } else
             printf("Error in new_adress\n");
