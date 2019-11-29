@@ -3,7 +3,7 @@
 
 int main() {
     Tree diff;
-    diff.readTreeFromFile("tree_test_test.txt");
+    diff.readTreeFromFile("rec_test.txt");
     diff.writeTreeInFile("test.txt");
     diff.dump();
     Tree diff_tree;

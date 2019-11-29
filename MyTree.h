@@ -19,6 +19,8 @@ const char TYPE_OPERATOR = 1, TYPE_NUMBER = 2, TYPE_VARIABLE = 3;
 enum {OPERATOR_ADD = 1, OPERATOR_SUB, OPERATOR_MUL, OPERATOR_DIV, OPERATOR_POW,
         OPERATOR_SIN, OPERATOR_COS, OPERATOR_LN};
 
+enum {VARIABLE_X = 1, VARIABLE_Y, VARIABLE_Z, VARIABLE_T};
+
 //#include <zconf.h>
 //#include "my_stack.h"
 typedef int size_tree_t;
@@ -59,6 +61,22 @@ private:
     size_tree_t root_;
     size_tree_t free_;
 
+    char* point_read_;
+
+
+    //----recursive descent----//
+    size_tree_t getG (char* text);
+    size_tree_t getE ();
+    size_tree_t getT ();
+    size_tree_t getO ();
+
+    size_tree_t getP ();
+
+    size_tree_t getN ();
+    size_tree_t getId ();
+
+    //----recursive descent----//
+
     void recordExpression (char* text);
     void writeFunExplanations (char* text, int num_action);
 
@@ -67,12 +85,12 @@ private:
     int optimisationUnusedMembers(char* text);
 
     void optimisationOfUnusedNodeAddSub (size_tree_t index);
-    void optimisationOfUnusedNodeMul(size_tree_t index);
-    void optimisationOfUnusedNodePow(size_tree_t index);
+    void optimisationOfUnusedNodeMul (size_tree_t index);
+    void optimisationOfUnusedNodePow (size_tree_t index);
 
     size_tree_t searchUnusedNode (Tree* tree , size_tree_t index);
     bool checkUnusedNode (Tree* tree, size_tree_t index);
-    void optimisationOfUnusedNode(size_tree_t index);
+    void optimisationOfUnusedNode (size_tree_t index);
 
 
     static void startPrintLatex (FILE* file);

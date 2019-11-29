@@ -16,6 +16,7 @@ one_element ((elem*) calloc(DEFAULT_LENGTH, sizeof(one_element[0]) )),
 all_names ((char *) calloc(DEFAULT_LENGHT_NAMES, sizeof(char))),
 size_ (0),
 size_names_ (0),
+point_read_ (0),
 root_ (0),
 length_names_ (DEFAULT_LENGHT_NAMES),
 length_ (DEFAULT_LENGTH)
@@ -66,7 +67,8 @@ bool Tree::readTreeFromFile(const char* name_file) {
     fread(text, sizeof(char), length_of_file - 1, file);
     text[length_of_file - 1] = '\0';
 
-    loadingTree(text);
+    getG(text);
+//    loadingTree(text);
 
     free(text);
 }
@@ -393,10 +395,10 @@ bool Tree::isVariable(char *name, size_tree_t index) {
     return true;\
 }
 
-    VAR(x , 1)
-    VAR(y , 2)
-    VAR(z , 3)
-    VAR(t , 4)
+    VAR(x , VARIABLE_X)
+    VAR(y , VARIABLE_Y)
+    VAR(z , VARIABLE_Z)
+    VAR(t , VARIABLE_T)
 
 #undef VAR
     return false;
@@ -430,6 +432,10 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
 #define crNum(number) createNumber(diff_tree, number)
 
 
+#define constLEFT isConstBranch(this, one_element[index].left_)
+#define constRIGHT isConstBranch(this, one_element[index].right_)
+
+
             switch ((int) round(one_element[index].value_))
             {
                 case OPERATOR_ADD:
@@ -445,14 +451,18 @@ size_tree_t Tree::diff(Tree *diff_tree, const size_tree_t index) {
                 case OPERATOR_DIV:
                     return DIV(MINUS(MUL(dL,cR), MUL(cL,dR)), POW(cR,crNum(2)));
                     break;
-                    /*   case OPERATOR_POW:
-       //                    if (isConstBranch(this, one_element[index].left_))
-       //                  */
-//             return POW(one_element[index].left_, one_element[index].right_);
+//                case OPERATOR_POW:
+//                    if (isConstBranch(this, one_element[index].left_) && )
+
+//                        return POW(one_element[index].left_, one_element[index].right_);
             }
             break;
 
     }
+
+#undef constLEFT
+#undef constRIGHT
+
 #undef crNum
 #undef cL
 #undef cR
@@ -1190,7 +1200,7 @@ void Tree::writeFunExplanations(char *text, int num_action) {
                 break;
             case 1:
                 strcat(text, "Следующие преобразования от нас потребуют 3 высших образования"
-                             " и наличие, как минимум, 2 красных диплома\n");
+                             " и наличие, как минимум, 2 красных дипломов\n");
                 break;
             case 2:
                 strcat(text, "Исходя из теормы 2.15 в 1 части Петровича получаем следующее\n");
@@ -1250,3 +1260,177 @@ void Tree::clearBranch(size_tree_t index) {
         clearBranch(one_element[index].right_);
     clearNode(index);
 }
+
+size_tree_t Tree::getG(char* text){
+    point_read_ = text;
+    root_ = getE();
+    assert(*point_read_ == '\0'|| *point_read_ == '\n');
+//    return value;
+}
+
+size_tree_t Tree::getE(){
+    size_tree_t first_index = getT(),
+            second_index = 0;
+    char last_oper = 0;
+    while (*point_read_ == '+' || *point_read_ == '-') {
+        char oper = *point_read_;
+        point_read_++;
+        second_index = getT();
+
+        if (!second_index)
+            printf("Don't found element after: %c\n", oper);
+
+
+        char str_operator[2] = {oper,0};
+
+        first_index = createNewObject(str_operator, first_index, second_index);
+    }
+    return  first_index;
+}
+
+size_tree_t Tree::getT() {
+    size_tree_t first_index = getO(),
+            second_index = 0;
+    char last_oper = 0;
+    while (*point_read_ == '*' || *point_read_ == '/' || *point_read_ == '^') {
+        char oper = *point_read_;
+        point_read_++;
+        second_index = getO();
+
+        if (!second_index)
+            printf("Don't found element after: %c\n", oper);
+
+
+        char str_oerator[2] = {oper,0};
+
+        first_index = createNewObject(str_oerator, first_index, second_index);
+        one_element[first_index].type_ = TYPE_OPERATOR;
+      /*  if (oper == '*')
+            one_element[first_index].value_ = OPERATOR_MUL;
+        if (oper == '/')
+            one_element[first_index].value_ = OPERATOR_DIV;*/
+        switch (oper) {
+            case '*':
+                one_element[first_index].value_ = OPERATOR_MUL;
+                break;
+            case '/':
+                one_element[first_index].value_ = OPERATOR_DIV;
+                break;
+            case '^':
+                one_element[first_index].value_ = OPERATOR_POW;
+                break;
+        }
+    }
+    return  first_index;
+}
+
+size_tree_t Tree::getP() {
+    size_tree_t temp_index = 0;
+    if (*point_read_ == '('){
+        point_read_++;
+        value_t value = getE();
+        if (*point_read_ != ')')
+            printf("Error in syntax!\n");
+        point_read_++;
+        return value;
+    } else {
+        temp_index = getN();
+        if (temp_index)
+            return temp_index;
+
+        temp_index = getId();
+        if (temp_index)
+            return temp_index;
+    }
+
+    return 0;
+}
+
+size_tree_t Tree::getN() {
+    value_t value = 0;
+    int num_run = 0;
+
+    bool first_state = (isdigit(*point_read_));
+
+    while (isdigit(*point_read_) /*&& !num_run*/){
+        value = value * 10 + (*point_read_ - '0');
+        point_read_++;
+        num_run++;
+    }
+
+    if (first_state){
+        char name[100] = {};
+        sprintf(name, "%lg", value);
+        size_tree_t new_index = createNewObject(name, 0, 0);
+//        one_element[new_index].type_ = TYPE_NUMBER;
+//        one_element[new_index].value_ = value;
+        return new_index;
+    } else
+        return 0;
+}
+
+size_tree_t Tree::getId() {
+    char name[100] = {};
+
+    bool first_run = true;
+    bool first_state = (isalpha(*point_read_));
+
+    while (isalpha(*point_read_) /*|| first_run*/) {
+        char read_now[2] = {*point_read_,0};
+        strcat(name, read_now);
+        point_read_++;
+        first_run = false;
+    }
+
+    if (first_state){
+        size_tree_t new_index = createNewObject(name, 0, 0);
+
+        one_element[new_index].type_ = TYPE_VARIABLE;
+
+        if (!strcmp("x", name))
+            one_element[new_index].value_ = VARIABLE_X;
+
+        else if (!strcmp("y", name))
+            one_element[new_index].value_ = VARIABLE_Y;
+
+        else if (!strcmp("z", name))
+            one_element[new_index].value_ = VARIABLE_Z;
+
+        else
+            printf("Unknoun variable: %s", name);
+        return  new_index;
+    } else {
+        return 0;
+    }
+}
+
+size_tree_t Tree::getO() {
+    char oper[20] = {};
+    int num_read = 0;
+    size_tree_t new_index = 0;
+    int how_read = sscanf(point_read_, "%[a-z]%n", oper, &num_read);
+    if (how_read && (!strcmp("sin", oper) || !strcmp("cos", oper) || !strcmp("ln", oper)) ) {
+        point_read_ += num_read;
+        new_index = getP();
+        if (!new_index)
+            printf("Can't read afrer: %s\n", oper);
+
+        one_element[new_index].type_ = TYPE_OPERATOR;
+
+        new_index = createNewObject(oper, 0, new_index);
+        if (!strcmp("sin", oper))
+            one_element[new_index].value_ = OPERATOR_SIN;
+        else if (!strcmp("cos", oper))
+            one_element[new_index].value_ = OPERATOR_COS;
+        else if (!strcmp("ln", oper))
+            one_element[new_index].value_ = OPERATOR_LN;
+        return new_index;
+    } else {
+        new_index = getP();
+        if (!new_index)
+            printf("Can't read getO: %s\n", oper);
+        return new_index;
+    }
+    return 0;
+}
+
